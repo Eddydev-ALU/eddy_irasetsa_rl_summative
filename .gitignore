@@ -11,3 +11,7 @@ __pycache__/
 
 # Scratch
 /tmp/
+
+# Private working notes (not part of submission)
+report_notes.md
+video_script.md
