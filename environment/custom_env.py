@@ -101,7 +101,7 @@ class EnvConfig:
     sigma_rot: float = np.deg2rad(25.0)
     sigma_tilt: float = np.deg2rad(12.0)
     target_tilt_range: float = np.deg2rad(8.0)
-    sigma_vis: float = 0.18            # how far away the anatomy is still recognisable
+    sigma_vis: float = 0.24            # how far away the anatomy is still recognisable
     offset_scale: float = 0.12         # detector offset of 1.0 = anatomy 0.12 away in-plane
     offset_noise: float = 0.08
     obs_offset: bool = True
@@ -195,7 +195,8 @@ class FetalScanNavEnv(gym.Env):
         d = np.array([np.cos(self.fetal_axis), np.sin(self.fetal_axis)])
         perp = np.array([-d[1], d[0]])
         c = self.fetal_centre
-        pos = [c + 0.17 * d, c - 0.02 * d, c - 0.15 * d + 0.05 * self.femur_side * perp]
+        # anatomical spacing at mid-trimester scale relative to the abdomen (HC-AC ~ 0.27; flexed thigh lies ventral to the abdomen)
+        pos = [c + 0.24 * d, c - 0.03 * d, c - 0.06 * d - 0.03 * self.femur_side * perp]
         rot = [
             self.fetal_axis + np.pi / 2 + self.rot_jitter[0],   # HC: transverse to the body axis
             self.fetal_axis + np.pi / 2 + self.rot_jitter[1],   # AC: transverse to the body axis
@@ -371,7 +372,7 @@ class FetalScanNavEnv(gym.Env):
         self.motion = bool(rng.uniform() < p_move)
         if self.motion:
             self.fetal_centre = self.fetal_centre + rng.normal(0, cfg.move_std, size=2)
-            self.fetal_centre = np.clip(self.fetal_centre, 0.25, 0.75)
+            self.fetal_centre = np.clip(self.fetal_centre, 0.32, 0.68)
             self.targets = self._compute_targets(~self.captured)
 
         if np.hypot(self.u - 0.5, self.v - 0.5) > cfg.region_radius:

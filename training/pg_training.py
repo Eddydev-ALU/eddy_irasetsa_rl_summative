@@ -19,7 +19,7 @@ from torch.distributions import Categorical
 from torchrl.objectives import A2CLoss, ClipPPOLoss, ReinforceLoss
 from torchrl.objectives.value import GAE
 
-from training.common import (RunLogger, evaluate, finish_run, greedy_act_fn, make_env, mlp,
+from training.common import (RunLogger, evaluate, finish_run, greedy_act_fn, make_env, mlp, obs_dim,
                              print_progress, seed_everything, select_best)
 
 TOTAL_FRAMES = 300_000
@@ -81,20 +81,28 @@ SWEEPS = {"reinforce": (REINFORCE_BASE, REINFORCE_SWEEP), "ppo": (PPO_BASE, PPO_
 
 
 # --------------------------------------------------------------- networks
-def build_actor_critic(width: int, spec, shared: bool = False):
+def build_actor_critic(width: int, spec, shared: bool = False, in_dim: int = 16):
     """Returns (policy_net, value_net, actor, critic). policy_net maps obs -> logits."""
     if shared:
-        trunk = mlp(16, 9, width)[:-1]                  # Linear-Tanh-Linear-Tanh
+        trunk = mlp(in_dim, 9, width)[:-1]                  # Linear-Tanh-Linear-Tanh
         policy_net = torch.nn.Sequential(*trunk, torch.nn.Linear(width, 9))
         value_net = torch.nn.Sequential(*trunk, torch.nn.Linear(width, 1))
     else:
-        policy_net, value_net = mlp(16, 9, width), mlp(16, 1, width)
+        policy_net, value_net = mlp(in_dim, 9, width), mlp(in_dim, 1, width)
     actor = ProbabilisticActor(
         TensorDictModule(policy_net, in_keys=["observation"], out_keys=["logits"]),
         in_keys=["logits"], distribution_class=Categorical, spec=spec, return_log_prob=True,
     )
     critic = ValueOperator(value_net, in_keys=["observation"])
     return policy_net, value_net, actor, critic
+
+
+def clip_grads(policy_params, value_params, max_norm):
+    """Clip actor and critic gradients separately: the critic's large return-scale gradients
+    must not shrink the actor's update through a shared global norm."""
+    gp = torch.nn.utils.clip_grad_norm_(list(policy_params), max_norm)
+    torch.nn.utils.clip_grad_norm_(list(value_params), max_norm)
+    return float(gp)
 
 
 def _entropy(actor, td):
@@ -106,6 +114,7 @@ def _setup(algo, run_id, overrides, total_frames, seed):
     cfg = {**base, **sweep.get(run_id, {}), **(overrides or {})}
     cfg["seed"] = seed if seed is not None else run_id
     cfg["total_frames"] = total_frames
+    cfg["obs_dim"] = obs_dim()
     seed_everything(cfg["seed"])
     torch.set_num_threads(1)
     return cfg
@@ -124,7 +133,7 @@ def _report(algo, run_id, cfg, net, logger, extra_state=None):
 def train_reinforce(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
     cfg = _setup("reinforce", run_id, overrides, total_frames, seed)
     env = make_env("train", cfg["seed"])
-    policy_net, value_net, actor, critic = build_actor_critic(cfg["width"], env.action_spec)
+    policy_net, value_net, actor, critic = build_actor_critic(cfg["width"], env.action_spec, False, cfg["obs_dim"])
     loss_fn = ReinforceLoss(actor, critic, functional=False)
     optim = torch.optim.Adam([{"params": policy_net.parameters(), "lr": cfg["lr"]},
                               {"params": value_net.parameters(), "lr": cfg["critic_lr"]}])
@@ -167,7 +176,7 @@ def train_reinforce(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None
             loss = loss + out["loss_value"]
         optim.zero_grad()
         loss.backward()
-        gn = torch.nn.utils.clip_grad_norm_(list(policy_net.parameters()) + list(value_net.parameters()), cfg["grad_clip"])
+        gn = clip_grads(policy_net.parameters(), value_net.parameters(), cfg["grad_clip"])
         optim.step()
         logger.log_update(frames, loss_actor=out["loss_actor"].item(), loss_value=out["loss_value"].item(),
                           entropy=ent.item(), grad_norm=float(gn))
@@ -184,7 +193,7 @@ def train_reinforce(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None
 def train_ppo(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
     cfg = _setup("ppo", run_id, overrides, total_frames, seed)
     env = make_env("train", cfg["seed"])
-    policy_net, value_net, actor, critic = build_actor_critic(cfg["width"], env.action_spec)
+    policy_net, value_net, actor, critic = build_actor_critic(cfg["width"], env.action_spec, False, cfg["obs_dim"])
     collector = SyncDataCollector(env, actor, frames_per_batch=cfg["frames_per_batch"], total_frames=total_frames)
     adv_module = GAE(gamma=cfg["gamma"], lmbda=cfg["lmbda"], value_network=critic, average_gae=False)
     loss_fn = ClipPPOLoss(actor, critic, clip_epsilon=cfg["clip"], entropy_coeff=cfg["entropy_coef"],
@@ -208,7 +217,7 @@ def train_ppo(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
                 loss = out["loss_objective"] + out["loss_critic"] + out["loss_entropy"]
                 optim.zero_grad()
                 loss.backward()
-                gn = torch.nn.utils.clip_grad_norm_(loss_fn.parameters(), cfg["grad_clip"])
+                gn = clip_grads(policy_net.parameters(), value_net.parameters(), cfg["grad_clip"])
                 optim.step()
                 stats.append([out["loss_objective"].item(), out["loss_critic"].item(), out["entropy"].item(),
                               out["kl_approx"].item(), out["clip_fraction"].item(), float(gn)])
@@ -229,7 +238,7 @@ def train_ppo(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
 def train_a2c(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
     cfg = _setup("a2c", run_id, overrides, total_frames, seed)
     env = make_env("train", cfg["seed"])
-    policy_net, value_net, actor, critic = build_actor_critic(cfg["width"], env.action_spec, cfg["shared"])
+    policy_net, value_net, actor, critic = build_actor_critic(cfg["width"], env.action_spec, cfg["shared"], cfg["obs_dim"])
     collector = SyncDataCollector(env, actor, frames_per_batch=cfg["n_steps"], total_frames=total_frames)
     adv_module = GAE(gamma=cfg["gamma"], lmbda=cfg["lmbda"], value_network=critic, average_gae=False)
     loss_fn = A2CLoss(actor, critic, entropy_coeff=cfg["entropy_coef"], critic_coeff=cfg["critic_coef"],
@@ -237,7 +246,6 @@ def train_a2c(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
     critic_only = [p for p in value_net.parameters() if all(p is not q for q in policy_net.parameters())]
     optim = torch.optim.Adam([{"params": list(policy_net.parameters()), "lr": cfg["actor_lr"]},
                               {"params": critic_only, "lr": cfg["critic_lr"]}])
-    params = list(policy_net.parameters()) + critic_only
     logger = RunLogger("a2c", run_id)
     frames, next_eval, next_print, acc = 0, 0, 0, []
     for batch in collector:
@@ -249,7 +257,7 @@ def train_a2c(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
         loss = out["loss_objective"] + out["loss_critic"] + out["loss_entropy"]
         optim.zero_grad()
         loss.backward()
-        gn = torch.nn.utils.clip_grad_norm_(params, cfg["grad_clip"])
+        gn = clip_grads(policy_net.parameters(), critic_only, cfg["grad_clip"])
         optim.step()
         acc.append([out["loss_objective"].item(), out["loss_critic"].item(), out["entropy"].item(), float(gn)])
         if len(acc) * cfg["n_steps"] >= 2048:   # log on the same cadence as PPO

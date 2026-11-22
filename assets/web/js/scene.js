@@ -3,58 +3,22 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-// ---- body geometry (one unit = 10 cm) -------------------------------------------------
-const TORSO = { W: 1.55, H: 0.78, L: 3.3 };            // elliptic-cylinder body lying supine
-const BELLY = { x: 1.28, z: 1.5, zc: 0.15, h: 1.0 };   // gravid dome
-const SCAN = 0.92;                                     // fraction of the dome that is scannable
-const FETAL_DEPTH = 0.92;                              // y of the fetal centre plane
+import { BELLY, SCAN, buildMother, buildFetus, makeSurface, FETAL_LANDMARKS } from "./anatomy.js";
 
-function taper(z) { return Math.sqrt(Math.max(0, 1 - Math.pow(z / TORSO.L, 4))); }
-function belly(x, z) {
-  const r = 1 - (x / BELLY.x) ** 2 - ((z - BELLY.zc) / BELLY.z) ** 2;
-  return r > 0 ? BELLY.h * Math.pow(r, 1.25) : 0;
-}
-export function surfaceY(x, z) {
-  const t = taper(z), w = TORSO.W * t;
-  const base = Math.abs(x) < w ? TORSO.H * t * Math.sqrt(1 - (x / w) ** 2) : 0;
-  return base + belly(x, z);
-}
-function surfaceNormal(x, z) {
-  const e = 1e-3;
-  const dx = (surfaceY(x + e, z) - surfaceY(x - e, z)) / (2 * e);
-  const dz = (surfaceY(x, z + e) - surfaceY(x, z - e)) / (2 * e);
-  return new THREE.Vector3(-dx, 1, -dz).normalize();
-}
+// ---- body geometry (one unit = 10 cm) -------------------------------------------------
+const FETAL_DEPTH = 0.95;                               // y of the fetal centre plane
+const MOTHER = buildMother();                           // smooth SDF patient + height table
+const SURF = makeSurface(MOTHER.table);
+const FETUS_GEO = buildFetus();                         // canonical fetus, transformed per episode
+
+export function surfaceY(x, z) { return SURF.y(x, z); }
+function surfaceNormal(x, z) { return SURF.normal(x, z); }
 // env (u, v) in [0,1]^2 -> world x/z. u grows to maternal right, v grows cranially (-z).
 export function uvToXZ(u, v) {
   return [(u - 0.5) * 2 * BELLY.x * SCAN, BELLY.zc - (v - 0.5) * 2 * BELLY.z * SCAN];
 }
 function uvDirToWorld(du, dv) {
   return new THREE.Vector3(du * BELLY.x, 0, -dv * BELLY.z).normalize();
-}
-
-function torsoGeometry() {
-  const nA = 160, nZ = 220;
-  const g = new THREE.BufferGeometry();
-  const pos = [], idx = [];
-  for (let j = 0; j <= nZ; j++) {
-    const z = -TORSO.L + (2 * TORSO.L * j) / nZ;
-    const t = taper(z);
-    for (let i = 0; i <= nA; i++) {
-      const a = -Math.PI / 2 + (Math.PI * i) / nA;
-      const x = TORSO.W * t * Math.sin(a);
-      const y = TORSO.H * t * Math.cos(a) + belly(x, z);
-      pos.push(x, y, z);
-    }
-  }
-  for (let j = 0; j < nZ; j++) for (let i = 0; i < nA; i++) {
-    const a = j * (nA + 1) + i, b = a + nA + 1;
-    idx.push(a, b, a + 1, b, b + 1, a + 1);   // counter-clockwise from outside -> outward normals
-  }
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
 }
 
 // Translucent tissue: physical material with a fresnel-driven alpha (medical-plate look).
@@ -81,7 +45,8 @@ function tissueMaterial({ color, minA, maxA, rim, sheen = 0.3, contours = false 
         if (uContours > 0.5) {
           // faint topographic contours give the dome its form
           float h = vWP.y / 0.13;
-          float cl = 1.0 - smoothstep(0.0, 1.2, abs(fract(h - 0.5) - 0.5) / fwidth(h));
+          float eb = length(vec2(vWP.x / uScan.x, (vWP.z - uScan.z) / uScan.y));
+          float cl = (1.0 - smoothstep(0.0, 1.2, abs(fract(h - 0.5) - 0.5) / fwidth(h))) * (1.0 - smoothstep(1.05, 1.5, eb));
           gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0, 0.9, 0.8), cl * 0.12);
           alpha += cl * 0.06;
           // scannable region outline (the agent's action space boundary)
@@ -201,14 +166,6 @@ function makeLabel(text) {
   return sp;
 }
 
-function capsuleBetween(p0, p1, r, mat) {
-  const len = p0.distanceTo(p1);
-  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(len - 2 * r, 0.001), 10, 24), mat);
-  m.position.copy(p0).add(p1).multiplyScalar(0.5);
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.clone().sub(p0).normalize());
-  m.castShadow = true;
-  return m;
-}
 
 export class Scene3D {
   constructor(canvas) {
@@ -235,13 +192,13 @@ export class Scene3D {
     this.controls.zoomSpeed = 0.6;
     this.controls.enablePan = false;
     this.controls.minDistance = 2.5;
-    this.controls.maxDistance = 14;
+    this.controls.maxDistance = 36;
     this.controls.maxPolarAngle = Math.PI * 0.47;
 
     this.views = {
-      1: { name: "Overview", pos: new THREE.Vector3(4.3, 4.6, 4.1), follow: 0.15 },
-      2: { name: "Probe close-up", pos: null, follow: 1.0 },
-      3: { name: "Top-down", pos: new THREE.Vector3(0.01, 9.0, 0.6), follow: 0.15 },
+      1: { name: "Overview", pos: new THREE.Vector3(5.2, 4.4, 5.2), look: new THREE.Vector3(0, 1.0, 0.6), follow: 0.15 },
+      2: { name: "Probe close-up", pos: null, look: new THREE.Vector3(0, 1.0, BELLY.zc), follow: 1.0 },
+      3: { name: "Full patient", pos: new THREE.Vector3(25, 15, 3.0), look: new THREE.Vector3(0, 0.2, 2.9), follow: 0.0 },
     };
     this.view = 1;
     this.camGoal = this.views[1].pos.clone();
@@ -290,31 +247,35 @@ export class Scene3D {
   }
 
   _table() {
-    const couch = new THREE.Mesh(
-      new THREE.BoxGeometry(3.9, 0.16, 8.4),
-      new THREE.MeshStandardMaterial({ color: "#15191c", roughness: 0.85 })
-    );
-    couch.position.y = -0.08;
+    const mat = new THREE.MeshStandardMaterial({ color: "#15191c", roughness: 0.85 });
+    const couch = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.22, 18.4), mat);
+    couch.position.set(0, -0.11, 2.6);
     couch.receiveShadow = true;
     this.scene.add(couch);
-    const sheet = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.4, 7.8),
-      new THREE.MeshStandardMaterial({ color: "#1f262a", roughness: 0.95 })
-    );
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.4, 12), new THREE.MeshStandardMaterial({ color: "#0f1214", roughness: 0.9 }));
+    base.position.set(0, -1.92, 2.6);
+    this.scene.add(base);
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 17.6), new THREE.MeshStandardMaterial({ color: "#1f262a", roughness: 0.95 }));
     sheet.rotation.x = -Math.PI / 2;
-    sheet.position.y = 0.002;
+    sheet.position.set(0, 0.002, 2.6);
     sheet.receiveShadow = true;
     this.scene.add(sheet);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.35 }));
+    // pillow under the head
+    const pillow = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), new THREE.MeshStandardMaterial({ color: "#2b3236", roughness: 0.9 }));
+    pillow.scale.set(1.5, 0.22, 0.9);
+    pillow.position.set(0, 0.12, -4.9);
+    pillow.receiveShadow = true;
+    this.scene.add(pillow);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.35 }));
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.16;
+    floor.position.y = -3.6;
     floor.receiveShadow = true;
     this.scene.add(floor);
   }
 
   _body() {
-    this.skinMat = tissueMaterial({ color: "#c89478", minA: 0.2, maxA: 0.72, rim: "#ffcfae", sheen: 0.5, contours: true });
-    const skin = new THREE.Mesh(torsoGeometry(), this.skinMat);
+    this.skinMat = tissueMaterial({ color: "#c89478", minA: 0.24, maxA: 0.75, rim: "#ffcfae", sheen: 0.5, contours: true });
+    const skin = new THREE.Mesh(MOTHER.geometry, this.skinMat);
     skin.renderOrder = 5;
     this.scene.add(skin);
 
@@ -322,8 +283,9 @@ export class Scene3D {
     this.scene.add(this.uterusGroup);
     this.uterusMat = tissueMaterial({ color: "#a8605a", minA: 0.04, maxA: 0.34, rim: "#e59a8a", sheen: 0.2 });
     const ut = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), this.uterusMat);
-    ut.scale.set(BELLY.x * 0.9, 0.8, BELLY.z * 0.9);
+    ut.scale.set(1.12, 0.8, 1.38);
     ut.position.set(0, FETAL_DEPTH, BELLY.zc);
+    this.uterus = ut;
     ut.renderOrder = 4;
     this.uterusGroup.add(ut);
 
@@ -332,7 +294,7 @@ export class Scene3D {
       new THREE.MeshPhysicalMaterial({ color: "#4a2828", roughness: 0.85, sheen: 0.3, sheenColor: new THREE.Color("#8a5048") })
     );
     plac.scale.set(0.56, 0.13, 0.5);
-    plac.position.set(-0.25, FETAL_DEPTH - 0.66, BELLY.zc - 0.35);
+    plac.position.set(-0.25, FETAL_DEPTH - 0.62, BELLY.zc - 0.35);
     plac.rotation.z = -0.12;
     this.placenta = plac;
     this.uterusGroup.add(plac);
@@ -381,53 +343,64 @@ export class Scene3D {
   setFetus(fetus, targets) {
     this.fetus.clear();
     this.targets = targets;
-    const skinM = new THREE.MeshPhysicalMaterial({ color: "#c28a73", roughness: 0.55, sheen: 0.6, sheenColor: new THREE.Color("#f2c2aa"), sheenRoughness: 0.6 });
-    const cordM = new THREE.MeshPhysicalMaterial({ color: "#b9bfc8", roughness: 0.4, sheen: 0.6, sheenColor: new THREE.Color("#e6ecf2") });
-    const at = (k, dy = 0) => {
+    const at = (k) => {
       const [x, z] = uvToXZ(targets[k][0], targets[k][1]);
-      return new THREE.Vector3(x, FETAL_DEPTH + dy, z);
+      return new THREE.Vector3(x, FETAL_DEPTH, z);
     };
-    const H = at("HC", 0.02), A = at("AC", -0.02), F = at("FL", -0.1);
-    const d = H.clone().sub(A).setY(0).normalize();                      // towards head
-    const side = new THREE.Vector3(-d.z, 0, d.x).multiplyScalar(fetus.femur_side);
+    const H = at("HC"), A = at("AC");
+    const L = FETAL_LANDMARKS;
+    // scale so the canonical head-to-abdomen distance matches the hidden targets
+    const lhA = new THREE.Vector2(L.HC.x - L.AC.x, L.HC.z - L.AC.z).length();
+    const s = H.distanceTo(A) / lhA;
+    const d = H.clone().sub(A).normalize();                     // world direction to the crown
     const up = new THREE.Vector3(0, 1, 0);
+    // semi-lateral lie: back rolled ~35 deg down to one side, face / folded limbs towards the probe.
+    // femur_side mirrors the pose across the vertical plane through the fetal axis.
+    const h = new THREE.Vector3().crossVectors(up, d).normalize();
+    const sd = fetus.femur_side, ca = Math.cos(0.61), sa = Math.sin(0.61);
+    const Y = h.clone().multiplyScalar(sd * ca).addScaledVector(up, -sa);
+    const Z = up.clone().multiplyScalar(ca).addScaledVector(h, sd * sa);
+    const basis = new THREE.Matrix4().makeBasis(d, Y, Z);
+    const m = new THREE.Matrix4().makeTranslation(A.x, A.y, A.z)
+      .multiply(basis).multiply(new THREE.Matrix4().makeScale(s, s, s))
+      .multiply(new THREE.Matrix4().makeTranslation(-L.AC.x, -L.AC.y, -L.AC.z));
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 48, 32), skinM);
-    head.scale.set(1.0, 0.88, 1.12);
-    head.position.copy(H);
-    head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), d);
-    head.castShadow = true;
-    this.fetus.add(head);
+    const skinM = new THREE.MeshPhysicalMaterial({
+      color: "#b9746a", roughness: 0.5, sheen: 0.45, sheenColor: new THREE.Color("#f3b49c"), sheenRoughness: 0.5,
+      emissive: new THREE.Color("#4a160c"), emissiveIntensity: 0.1,
+      clearcoat: 0.25, clearcoatRoughness: 0.35,   // amniotic sheen
+    });
+    const body = new THREE.Mesh(FETUS_GEO, skinM);
+    body.matrixAutoUpdate = false;
+    body.matrix.copy(m);
+    body.castShadow = true;
+    this.fetus.add(body);
 
-    const neck = H.clone().addScaledVector(d, -0.28);
-    const pelvis = A.clone().addScaledVector(d, -0.3).addScaledVector(up, 0.02);
-    this.fetus.add(capsuleBetween(neck, pelvis, 0.19, skinM));
-    // slight dorsal curvature: back is the 'up' side, add a subtle shoulder mass
-    this.fetus.add(capsuleBetween(neck.clone().addScaledVector(up, 0.05), A.clone().addScaledVector(up, 0.06), 0.15, skinM));
+    // landmark positions in world space (for ground-truth drop lines and the cord)
+    const W = (v) => v.clone().applyMatrix4(m);
+    this.anatomy = { H: W(L.HC), A: W(L.AC), F: W(L.FL) };
 
-    // legs: femur goes from the hip to the femur target, lower leg folds back
-    for (const s of [1, -1]) {
-      const hip = pelvis.clone().addScaledVector(side, 0.1 * s).addScaledVector(up, s > 0 ? -0.04 : 0.06);
-      const knee = s > 0 ? F.clone() : F.clone().addScaledVector(side, -0.24).addScaledVector(up, 0.12);
-      const foot = knee.clone().addScaledVector(d, 0.3).addScaledVector(side, -0.08 * s).addScaledVector(up, -0.03);
-      this.fetus.add(capsuleBetween(hip, knee, 0.075, skinM));
-      this.fetus.add(capsuleBetween(knee, foot, 0.06, skinM));
+    // coiled umbilical cord from the navel to the placenta
+    const navel = W(L.navel);
+    const pl = this.placenta.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.08, 0));
+    const pts = [];
+    const off = new THREE.Vector3().crossVectors(d, up).multiplyScalar(0.3);
+    const base = new THREE.CubicBezierCurve3(navel, navel.clone().lerp(pl, 0.3).add(off).add(new THREE.Vector3(0, 0.1, 0)),
+      navel.clone().lerp(pl, 0.7).sub(off), pl);
+    for (let i = 0; i <= 160; i++) {
+      const t = i / 160, p = base.getPoint(t), tan = base.getTangent(t);
+      const n1 = new THREE.Vector3().crossVectors(tan, up).normalize();
+      const n2 = new THREE.Vector3().crossVectors(tan, n1).normalize();
+      const a = t * Math.PI * 2 * 7, r = 0.012;
+      pts.push(p.add(n1.multiplyScalar(Math.cos(a) * r)).add(n2.multiplyScalar(Math.sin(a) * r)));
     }
-    // arms folded towards the face
-    for (const s of [1, -1]) {
-      const sh = neck.clone().addScaledVector(d, -0.08).addScaledVector(side, 0.2 * s).addScaledVector(up, 0.02);
-      const el = sh.clone().addScaledVector(d, -0.18).addScaledVector(side, 0.06 * s).addScaledVector(up, -0.1);
-      const hand = H.clone().addScaledVector(d, -0.18).addScaledVector(side, 0.12 * s).addScaledVector(up, -0.16);
-      this.fetus.add(capsuleBetween(sh, el, 0.05, skinM));
-      this.fetus.add(capsuleBetween(el, hand, 0.045, skinM));
-    }
-    // umbilical cord to the placenta
-    const pl = this.placenta.position.clone();
-    const mid = A.clone().add(pl).multiplyScalar(0.5).add(new THREE.Vector3(0.25, -0.05, 0.2));
-    const curve = new THREE.CatmullRomCurve3([A.clone().addScaledVector(up, -0.18), mid, pl.clone().addScaledVector(up, -0.06)]);
-    this.fetus.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 64, 0.03, 12, false), cordM));
+    const cordM = new THREE.MeshPhysicalMaterial({ color: "#c9ced8", roughness: 0.35, clearcoat: 0.6, sheen: 0.5, sheenColor: new THREE.Color("#eef2f7") });
+    const cord = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 400, 0.022, 10, false), cordM);
+    cord.castShadow = true;
+    this.fetus.add(cord);
 
-    this.anatomy = { H, A, F };
+    // the uterus follows the fetus a little so the fetus stays inside it
+    this.uterus.position.set(A.x * 0.4, FETAL_DEPTH, BELLY.zc + (A.z - BELLY.zc) * 0.4);
     this._placeMarkers(targets);
   }
 
@@ -565,7 +538,7 @@ export class Scene3D {
 
     // camera: gentle follow unless the user is orbiting
     const view = this.views[this.view];
-    const look = new THREE.Vector3(0, 1.0, BELLY.zc).lerp(pos, view.follow);
+    const look = view.look.clone().lerp(pos, view.follow);
     this.lookGoal.lerp(look, 1 - Math.exp(-dt * 2.5));
     this.controls.target.lerp(this.lookGoal, 1 - Math.exp(-dt * 3));
     if (!this.userOrbiting) {
