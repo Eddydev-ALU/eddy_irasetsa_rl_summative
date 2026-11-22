@@ -228,8 +228,8 @@ class FetalScanNavEnv(gym.Env):
 
     def _info(self):
         return {
-            "success": bool(self.captured.all()),
-            "planes_captured": int(self.captured.sum()),
+            "success": np.bool_(self.captured.all()),
+            "planes_captured": np.int64(self.captured.sum()),
             "capture_qualities": self.capture_q.copy(),
             "steps": self.steps,
             "presentation": self.presentation,
