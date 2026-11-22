@@ -1,0 +1,44 @@
+{
+  "random/train": {
+    "mean_return": -77.64008036895174,
+    "std_return": 15.509696721025323,
+    "success_rate": 0.0,
+    "mean_steps": 199.12,
+    "mean_capture_quality": 0.015542694767453473
+  },
+  "random/test": {
+    "mean_return": -77.12931933250297,
+    "std_return": 14.55094287268752,
+    "success_rate": 0.0,
+    "mean_steps": 198.46,
+    "mean_capture_quality": 0.016288970022096415
+  },
+  "hillclimb/train": {
+    "mean_return": -6.97892468289286,
+    "std_return": 3.89823895860117,
+    "success_rate": 0.0,
+    "mean_steps": 200.0,
+    "mean_capture_quality": 0.3461220204237155
+  },
+  "hillclimb/test": {
+    "mean_return": -7.440635739804011,
+    "std_return": 3.786070606711983,
+    "success_rate": 0.0,
+    "mean_steps": 200.0,
+    "mean_capture_quality": 0.2945366379337463
+  },
+  "oracle/train": {
+    "mean_return": 48.55656506526825,
+    "std_return": 0.9073826254817766,
+    "success_rate": 1.0,
+    "mean_steps": 50.38,
+    "mean_capture_quality": 0.9223819268489121
+  },
+  "oracle/test": {
+    "mean_return": 48.56465756085456,
+    "std_return": 0.899601710859116,
+    "success_rate": 1.0,
+    "mean_steps": 48.79,
+    "mean_capture_quality": 0.9176028672077139
+  }
+}
