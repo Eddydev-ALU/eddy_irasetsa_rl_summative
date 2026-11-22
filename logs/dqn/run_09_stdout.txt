@@ -1,0 +1,12 @@
+[dqn run_09] frames      64/300000 | ep     0 | ret(50)     nan | succ(50)  nan | eps 1.00
+[dqn run_09] frames   30016/300000 | ep   150 | ret(50)  -25.44 | succ(50) 0.02 | eps 0.76
+[dqn run_09] frames   60032/300000 | ep   308 | ret(50)  -15.61 | succ(50) 0.26 | eps 0.52
+[dqn run_09] frames   90048/300000 | ep   496 | ret(50)   11.28 | succ(50) 0.70 | eps 0.29
+[dqn run_09] frames  120000/300000 | ep   778 | ret(50)   24.15 | succ(50) 0.78 | eps 0.05
+[dqn run_09] frames  150016/300000 | ep  1094 | ret(50)   32.57 | succ(50) 0.84 | eps 0.05
+[dqn run_09] frames  180032/300000 | ep  1572 | ret(50)   35.38 | succ(50) 0.92 | eps 0.05
+[dqn run_09] frames  210048/300000 | ep  2113 | ret(50)   38.62 | succ(50) 0.94 | eps 0.05
+[dqn run_09] frames  240000/300000 | ep  2626 | ret(50)   35.87 | succ(50) 0.86 | eps 0.05
+[dqn run_09] frames  270016/300000 | ep  3122 | ret(50)   41.13 | succ(50) 0.94 | eps 0.05
+[dqn run_09] frames  300032/300000 | ep  3651 | ret(50)   41.15 | succ(50) 0.98 | eps 0.05
+[dqn run_09] done: train 43.20 (98%) | test 37.60 (97%)

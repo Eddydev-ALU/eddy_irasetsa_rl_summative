@@ -1,0 +1,23 @@
+{
+  "algo": "reinforce",
+  "run": 4,
+  "eval_train": {
+    "mean_return": -11.998208115336261,
+    "std_return": 0.8817555748227518,
+    "success_rate": 0.0,
+    "mean_planes": 0.01,
+    "mean_steps": 200.0,
+    "mean_capture_quality": 0.007953087049708875
+  },
+  "eval_test": {
+    "mean_return": -11.660684030671446,
+    "std_return": 2.890261771057973,
+    "success_rate": 0.0,
+    "mean_planes": 0.08,
+    "mean_steps": 200.0,
+    "mean_capture_quality": 0.06238437557927561
+  },
+  "episodes_trained": 1576,
+  "episodes_to_converge": 1573,
+  "wall_time_s": 260.0
+}

@@ -1,0 +1,21 @@
+{
+  "lr": 0.001,
+  "gamma": 0.99,
+  "buffer": 100000,
+  "batch": 128,
+  "eps_start": 1.0,
+  "eps_end": 0.05,
+  "eps_decay_frac": 0.4,
+  "target": "hard",
+  "tau": 0.005,
+  "hard_every": 5000,
+  "double": false,
+  "width": 128,
+  "frames_per_batch": 64,
+  "utd": 1,
+  "init_random": 5000,
+  "grad_clip": 10.0,
+  "seed": 12,
+  "total_frames": 300000,
+  "obs_dim": 22
+}

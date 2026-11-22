@@ -1,0 +1,298 @@
+{
+  "dqn": {
+    "config_from": "run_09",
+    "seeds": [
+      1003,
+      1002,
+      1001
+    ],
+    "train_return_mean": 37.19510374911491,
+    "train_return_std": 3.954307918021251,
+    "train_success_mean": 0.8766666666666666,
+    "test_return_mean": 35.70883170413138,
+    "test_return_std": 2.7608697576053682,
+    "test_success_mean": 0.8733333333333334,
+    "runs_that_learned": 3,
+    "per_seed": [
+      {
+        "seed": 1003,
+        "train": {
+          "mean_return": 39.80341861089479,
+          "std_return": 19.308371307401487,
+          "success_rate": 0.97,
+          "mean_planes": 2.97,
+          "mean_steps": 55.27,
+          "mean_capture_quality": 0.7868789314921812
+        },
+        "test": {
+          "mean_return": 39.556895595973316,
+          "std_return": 12.362724305014353,
+          "success_rate": 0.97,
+          "mean_planes": 2.94,
+          "mean_steps": 66.15,
+          "mean_capture_quality": 0.7928427548248069
+        }
+      },
+      {
+        "seed": 1002,
+        "train": {
+          "mean_return": 31.606982400058527,
+          "std_return": 17.729439800048247,
+          "success_rate": 0.73,
+          "mean_planes": 2.69,
+          "mean_steps": 101.34,
+          "mean_capture_quality": 0.8162961255713824
+        },
+        "test": {
+          "mean_return": 33.21216903870908,
+          "std_return": 18.010744846610226,
+          "success_rate": 0.8,
+          "mean_planes": 2.64,
+          "mean_steps": 94.97,
+          "mean_capture_quality": 0.8218000559265508
+        }
+      },
+      {
+        "seed": 1001,
+        "train": {
+          "mean_return": 40.17491023639142,
+          "std_return": 15.993754258049561,
+          "success_rate": 0.93,
+          "mean_planes": 2.89,
+          "mean_steps": 65.54,
+          "mean_capture_quality": 0.8374699089545122
+        },
+        "test": {
+          "mean_return": 34.35743047771175,
+          "std_return": 16.210238014195046,
+          "success_rate": 0.85,
+          "mean_planes": 2.7,
+          "mean_steps": 107.25,
+          "mean_capture_quality": 0.8351806468324867
+        }
+      }
+    ]
+  },
+  "reinforce": {
+    "config_from": "run_10",
+    "seeds": [
+      1002,
+      1003,
+      1001
+    ],
+    "train_return_mean": -11.810833876084034,
+    "train_return_std": 0.19717024069358186,
+    "train_success_mean": 0.0,
+    "test_return_mean": -11.435771878853133,
+    "test_return_std": 0.29267845705815,
+    "test_success_mean": 0.0,
+    "runs_that_learned": 0,
+    "per_seed": [
+      {
+        "seed": 1002,
+        "train": {
+          "mean_return": -12.088822698482835,
+          "std_return": 0.4162114513860973,
+          "success_rate": 0.0,
+          "mean_planes": 0.0,
+          "mean_steps": 200.0,
+          "mean_capture_quality": 0.0
+        },
+        "test": {
+          "mean_return": -11.734646093979569,
+          "std_return": 0.5170211290913039,
+          "success_rate": 0.0,
+          "mean_planes": 0.0,
+          "mean_steps": 200.0,
+          "mean_capture_quality": 0.0
+        }
+      },
+      {
+        "seed": 1003,
+        "train": {
+          "mean_return": -11.652976360984589,
+          "std_return": 1.0577631390874762,
+          "success_rate": 0.0,
+          "mean_planes": 0.0,
+          "mean_steps": 190.14,
+          "mean_capture_quality": 0.0
+        },
+        "test": {
+          "mean_return": -11.038349546955224,
+          "std_return": 1.570850339054399,
+          "success_rate": 0.0,
+          "mean_planes": 0.0,
+          "mean_steps": 166.91,
+          "mean_capture_quality": 0.0
+        }
+      },
+      {
+        "seed": 1001,
+        "train": {
+          "mean_return": -11.690702568784682,
+          "std_return": 0.4454274448593616,
+          "success_rate": 0.0,
+          "mean_planes": 0.0,
+          "mean_steps": 172.66,
+          "mean_capture_quality": 0.0
+        },
+        "test": {
+          "mean_return": -11.534319995624605,
+          "std_return": 0.41614522161149486,
+          "success_rate": 0.0,
+          "mean_planes": 0.0,
+          "mean_steps": 200.0,
+          "mean_capture_quality": 0.0
+        }
+      }
+    ]
+  },
+  "ppo": {
+    "config_from": "run_08",
+    "seeds": [
+      1001,
+      1003,
+      1002
+    ],
+    "train_return_mean": 45.00488965197147,
+    "train_return_std": 1.4752202058324901,
+    "train_success_mean": 0.9933333333333333,
+    "test_return_mean": 45.997957125242294,
+    "test_return_std": 0.4134279405710002,
+    "test_success_mean": 1.0,
+    "runs_that_learned": 3,
+    "per_seed": [
+      {
+        "seed": 1001,
+        "train": {
+          "mean_return": 46.01729264302317,
+          "std_return": 1.070912520353394,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 37.37,
+          "mean_capture_quality": 0.8441297197625944
+        },
+        "test": {
+          "mean_return": 45.516792572614776,
+          "std_return": 1.6368542299684137,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 42.38,
+          "mean_capture_quality": 0.8403665808012133
+        }
+      },
+      {
+        "seed": 1003,
+        "train": {
+          "mean_return": 42.918912184566416,
+          "std_return": 30.52059719363513,
+          "success_rate": 0.98,
+          "mean_planes": 2.98,
+          "mean_steps": 42.77,
+          "mean_capture_quality": 0.89158878476126
+        },
+        "test": {
+          "mean_return": 46.526192835462616,
+          "std_return": 1.1171274101483684,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 44.99,
+          "mean_capture_quality": 0.8777112535535803
+        }
+      },
+      {
+        "seed": 1002,
+        "train": {
+          "mean_return": 46.0784641283248,
+          "std_return": 4.178510432168097,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 38.18,
+          "mean_capture_quality": 0.8613783241020238
+        },
+        "test": {
+          "mean_return": 45.950885967649484,
+          "std_return": 1.4678719153693396,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 44.66,
+          "mean_capture_quality": 0.8606338218328681
+        }
+      }
+    ]
+  },
+  "a2c": {
+    "config_from": "run_06",
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "train_return_mean": 45.08742286512342,
+    "train_return_std": 0.5620008676833089,
+    "train_success_mean": 0.9933333333333333,
+    "test_return_mean": 44.75177848110633,
+    "test_return_std": 0.6105731451686974,
+    "test_success_mean": 0.9933333333333333,
+    "runs_that_learned": 3,
+    "per_seed": [
+      {
+        "seed": 1001,
+        "train": {
+          "mean_return": 44.42490035704146,
+          "std_return": 4.277060557033815,
+          "success_rate": 0.99,
+          "mean_planes": 2.99,
+          "mean_steps": 38.22,
+          "mean_capture_quality": 0.8080568916791028
+        },
+        "test": {
+          "mean_return": 44.225482850506225,
+          "std_return": 4.2739208236028645,
+          "success_rate": 0.99,
+          "mean_planes": 2.99,
+          "mean_steps": 42.4,
+          "mean_capture_quality": 0.8064272387943703
+        }
+      },
+      {
+        "seed": 1002,
+        "train": {
+          "mean_return": 45.79890169849074,
+          "std_return": 1.074288929677582,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 36.92,
+          "mean_capture_quality": 0.8357103825282644
+        },
+        "test": {
+          "mean_return": 45.60776609796345,
+          "std_return": 1.2154026079840134,
+          "success_rate": 1.0,
+          "mean_planes": 3.0,
+          "mean_steps": 40.58,
+          "mean_capture_quality": 0.834745317626416
+        }
+      },
+      {
+        "seed": 1003,
+        "train": {
+          "mean_return": 45.03846653983808,
+          "std_return": 4.3127381884344524,
+          "success_rate": 0.99,
+          "mean_planes": 2.99,
+          "mean_steps": 38.9,
+          "mean_capture_quality": 0.8243083939261392
+        },
+        "test": {
+          "mean_return": 44.42208649484932,
+          "std_return": 4.25009715578015,
+          "success_rate": 0.99,
+          "mean_planes": 2.99,
+          "mean_steps": 45.12,
+          "mean_capture_quality": 0.8169636962934141
+        }
+      }
+    ]
+  }
+}

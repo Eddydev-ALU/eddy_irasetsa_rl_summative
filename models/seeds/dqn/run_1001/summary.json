@@ -1,0 +1,23 @@
+{
+  "algo": "dqn",
+  "run": 1001,
+  "eval_train": {
+    "mean_return": 40.17491023639142,
+    "std_return": 15.993754258049561,
+    "success_rate": 0.93,
+    "mean_planes": 2.89,
+    "mean_steps": 65.54,
+    "mean_capture_quality": 0.8374699089545122
+  },
+  "eval_test": {
+    "mean_return": 34.35743047771175,
+    "std_return": 16.210238014195046,
+    "success_rate": 0.85,
+    "mean_planes": 2.7,
+    "mean_steps": 107.25,
+    "mean_capture_quality": 0.8351806468324867
+  },
+  "episodes_trained": 3181,
+  "episodes_to_converge": 3021,
+  "wall_time_s": 254.0
+}

@@ -1,0 +1,12 @@
+[reinforce run_1003] frames    1600/300000 | ep     8 | ret(50) -161.51 | succ(50) 0.00 | H 2.19
+[reinforce run_1003] frames   30386/300000 | ep   496 | ret(50)   -9.16 | succ(50) 0.00 | H 1.96
+[reinforce run_1003] frames   60764/300000 | ep   816 | ret(50)   -9.18 | succ(50) 0.00 | H 2.02
+[reinforce run_1003] frames   90728/300000 | ep  1080 | ret(50)  -10.94 | succ(50) 0.00 | H 1.89
+[reinforce run_1003] frames  120492/300000 | ep  1376 | ret(50)  -10.39 | succ(50) 0.00 | H 1.78
+[reinforce run_1003] frames  150413/300000 | ep  1576 | ret(50)  -13.95 | succ(50) 0.00 | H 1.96
+[reinforce run_1003] frames  180302/300000 | ep  1728 | ret(50)  -11.65 | succ(50) 0.00 | H 0.98
+[reinforce run_1003] frames  210268/300000 | ep  1920 | ret(50)  -11.47 | succ(50) 0.00 | H 0.67
+[reinforce run_1003] frames  240668/300000 | ep  2072 | ret(50)  -11.94 | succ(50) 0.00 | H 0.84
+[reinforce run_1003] frames  270197/300000 | ep  2232 | ret(50)  -11.78 | succ(50) 0.00 | H 0.86
+[reinforce run_1003] frames  300859/300000 | ep  2392 | ret(50)  -11.50 | succ(50) 0.00 | H 1.49
+[reinforce run_1003] done: train -11.65 (0%) | test -11.04 (0%)

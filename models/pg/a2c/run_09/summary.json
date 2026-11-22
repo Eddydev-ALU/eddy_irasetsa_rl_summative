@@ -1,0 +1,23 @@
+{
+  "algo": "a2c",
+  "run": 9,
+  "eval_train": {
+    "mean_return": 43.19466974553784,
+    "std_return": 21.671336318498145,
+    "success_rate": 0.99,
+    "mean_planes": 2.99,
+    "mean_steps": 37.72,
+    "mean_capture_quality": 0.8196358460451882
+  },
+  "eval_test": {
+    "mean_return": 45.59353110298333,
+    "std_return": 1.4557054067963477,
+    "success_rate": 1.0,
+    "mean_planes": 3.0,
+    "mean_steps": 38.92,
+    "mean_capture_quality": 0.8309032411779355
+  },
+  "episodes_trained": 4657,
+  "episodes_to_converge": 4490,
+  "wall_time_s": 355.5
+}

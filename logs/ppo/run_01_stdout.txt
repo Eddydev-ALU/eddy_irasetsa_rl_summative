@@ -1,0 +1,12 @@
+[ppo run_01] frames    1024/300000 | ep     5 | ret(50)  -38.62 | succ(50) 0.00 | H 2.18 | kl 0.0109
+[ppo run_01] frames   30720/300000 | ep   158 | ret(50)  -12.38 | succ(50) 0.00 | H 1.83 | kl 0.0107
+[ppo run_01] frames   60416/300000 | ep   306 | ret(50)  -12.18 | succ(50) 0.00 | H 1.76 | kl 0.0036
+[ppo run_01] frames   90112/300000 | ep   455 | ret(50)  -12.31 | succ(50) 0.00 | H 1.48 | kl 0.0132
+[ppo run_01] frames  120832/300000 | ep   608 | ret(50)  -12.22 | succ(50) 0.00 | H 1.35 | kl 0.0118
+[ppo run_01] frames  150528/300000 | ep   757 | ret(50)  -12.32 | succ(50) 0.00 | H 1.16 | kl 0.0040
+[ppo run_01] frames  180224/300000 | ep   905 | ret(50)  -12.15 | succ(50) 0.00 | H 1.10 | kl 0.0102
+[ppo run_01] frames  210944/300000 | ep  1059 | ret(50)  -12.25 | succ(50) 0.00 | H 1.13 | kl 0.0042
+[ppo run_01] frames  240640/300000 | ep  1207 | ret(50)  -12.55 | succ(50) 0.00 | H 1.11 | kl 0.0123
+[ppo run_01] frames  270336/300000 | ep  1356 | ret(50)  -12.50 | succ(50) 0.00 | H 1.09 | kl 0.0049
+[ppo run_01] frames  300032/300000 | ep  1504 | ret(50)  -12.32 | succ(50) 0.00 | H 1.19 | kl 0.0114
+[ppo run_01] done: train -12.30 (0%) | test -12.21 (0%)

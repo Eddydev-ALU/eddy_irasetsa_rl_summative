@@ -1,0 +1,16 @@
+{
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "lmbda": 0.95,
+  "clip": 0.2,
+  "frames_per_batch": 1024,
+  "epochs": 8,
+  "minibatch": 128,
+  "entropy_coef": 0.01,
+  "critic_coef": 1.0,
+  "grad_clip": 5.0,
+  "width": 128,
+  "seed": 13,
+  "total_frames": 300000,
+  "obs_dim": 22
+}

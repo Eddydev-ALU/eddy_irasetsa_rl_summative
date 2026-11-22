@@ -1,0 +1,12 @@
+[a2c run_12] frames      32/300000 | ep     0 | ret(50)     nan | succ(50)  nan | H 2.20
+[a2c run_12] frames   30016/300000 | ep   151 | ret(50)  -12.06 | succ(50) 0.00 | H 1.29
+[a2c run_12] frames   60000/300000 | ep   316 | ret(50)  -12.31 | succ(50) 0.00 | H 0.93
+[a2c run_12] frames   90016/300000 | ep   467 | ret(50)  -12.06 | succ(50) 0.00 | H 0.68
+[a2c run_12] frames  120000/300000 | ep   617 | ret(50)  -12.13 | succ(50) 0.00 | H 1.31
+[a2c run_12] frames  150016/300000 | ep   767 | ret(50)  -12.27 | succ(50) 0.00 | H 0.81
+[a2c run_12] frames  180000/300000 | ep   917 | ret(50)  -12.21 | succ(50) 0.00 | H 1.54
+[a2c run_12] frames  210016/300000 | ep  1067 | ret(50)  -12.26 | succ(50) 0.00 | H 1.51
+[a2c run_12] frames  240000/300000 | ep  1217 | ret(50)  -12.21 | succ(50) 0.00 | H 1.17
+[a2c run_12] frames  270016/300000 | ep  1367 | ret(50)  -12.11 | succ(50) 0.00 | H 1.25
+[a2c run_12] frames  300000/300000 | ep  1517 | ret(50)  -12.17 | succ(50) 0.00 | H 1.24
+[a2c run_12] done: train -12.41 (0%) | test -12.20 (0%)

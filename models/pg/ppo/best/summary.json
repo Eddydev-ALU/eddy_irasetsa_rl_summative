@@ -1,0 +1,23 @@
+{
+  "algo": "ppo",
+  "run": 8,
+  "eval_train": {
+    "mean_return": 47.011430680219206,
+    "std_return": 1.0269756406363952,
+    "success_rate": 1.0,
+    "mean_planes": 3.0,
+    "mean_steps": 39.22,
+    "mean_capture_quality": 0.8828901112730775
+  },
+  "eval_test": {
+    "mean_return": 46.653968729701376,
+    "std_return": 4.194485335478761,
+    "success_rate": 0.99,
+    "mean_planes": 2.99,
+    "mean_steps": 47.93,
+    "mean_capture_quality": 0.9007090516959447
+  },
+  "episodes_trained": 6495,
+  "episodes_to_converge": 6495,
+  "wall_time_s": 480.7
+}
