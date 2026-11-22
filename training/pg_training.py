@@ -42,8 +42,8 @@ REINFORCE_SWEEP = {
     12: dict(width=256),
 }
 
-PPO_BASE = dict(lr=3e-4, gamma=0.99, lmbda=0.95, clip=0.2, frames_per_batch=2048, epochs=4,
-                minibatch=256, entropy_coef=0.01, critic_coef=0.5, grad_clip=0.5, width=128)
+PPO_BASE = dict(lr=3e-4, gamma=0.99, lmbda=0.95, clip=0.2, frames_per_batch=1024, epochs=8,
+                minibatch=128, entropy_coef=0.01, critic_coef=0.5, grad_clip=0.5, width=128)
 PPO_SWEEP = {
     1: dict(),
     2: dict(lr=1e-3),
@@ -52,16 +52,16 @@ PPO_SWEEP = {
     5: dict(lmbda=0.8),
     6: dict(clip=0.1),
     7: dict(clip=0.3),
-    8: dict(frames_per_batch=512, minibatch=128),
+    8: dict(frames_per_batch=256, minibatch=64),
     9: dict(frames_per_batch=4096, minibatch=512),
-    10: dict(epochs=10),
+    10: dict(epochs=3),
     11: dict(entropy_coef=0.0),
     12: dict(entropy_coef=0.05),
     13: dict(critic_coef=1.0, grad_clip=5.0),
 }
 
 A2C_BASE = dict(actor_lr=7e-4, critic_lr=7e-4, gamma=0.99, n_steps=32, lmbda=1.0, entropy_coef=0.01,
-                critic_coef=0.5, shared=False, grad_clip=0.5, width=128)
+                critic_coef=0.5, shared=False, normalize_adv=True, grad_clip=0.5, width=128)
 A2C_SWEEP = {
     1: dict(),                                           # plain n-step advantage (lambda = 1)
     2: dict(lmbda=0.95),                                 # GAE advantage
@@ -75,6 +75,7 @@ A2C_SWEEP = {
     10: dict(critic_coef=1.0),
     11: dict(shared=True),
     12: dict(shared=True, lmbda=0.95),
+    13: dict(normalize_adv=False),                       # raw advantages
 }
 
 SWEEPS = {"reinforce": (REINFORCE_BASE, REINFORCE_SWEEP), "ppo": (PPO_BASE, PPO_SWEEP), "a2c": (A2C_BASE, A2C_SWEEP)}
@@ -253,6 +254,9 @@ def train_a2c(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
         logger.log_episodes(batch, frames)
         with torch.no_grad():
             adv_module(batch)
+            if cfg["normalize_adv"]:
+                adv = batch["advantage"]
+                batch["advantage"] = (adv - adv.mean()) / (adv.std() + 1e-8)
         out = loss_fn(batch)
         loss = out["loss_objective"] + out["loss_critic"] + out["loss_entropy"]
         optim.zero_grad()

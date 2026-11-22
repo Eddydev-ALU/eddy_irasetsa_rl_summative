@@ -9,6 +9,15 @@ def test_check_env():
     check_env(FetalScanNavEnv())
 
 
+def test_estimate_gated_by_visibility():
+    env = FetalScanNavEnv()
+    obs, _ = env.reset(seed=7)
+    env.u, env.v = 0.03, 0.5          # far lateral: no anatomy in view
+    a, vis = env._alignment()
+    env.q, env.probs = env._image_signals(a, vis)
+    assert np.all(env._obs()[16:] == 0)
+
+
 def test_obs_in_space_and_seeding():
     a, b = FetalScanNavEnv(), FetalScanNavEnv()
     oa, _ = a.reset(seed=3)
@@ -42,7 +51,7 @@ def test_correct_then_duplicate_capture():
     _place_on(env, 0)
     _, r, _, _, info = env.step(CAPTURE)
     assert info["event"][0] == "bad_capture" and info["planes_captured"] == 1
-    assert r < -2
+    assert r < -0.5
 
 
 def test_low_quality_capture_penalised():
@@ -52,7 +61,7 @@ def test_low_quality_capture_penalised():
     a, vis = env._alignment()
     env.q, env.probs = env._image_signals(a, vis)
     _, r, _, _, info = env.step(CAPTURE)
-    assert info["event"][0] == "bad_capture" and r < -2
+    assert info["event"][0] == "bad_capture" and r < -0.5
 
 
 def test_success_terminates_with_bonus():

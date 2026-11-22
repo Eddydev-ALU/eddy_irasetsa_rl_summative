@@ -227,7 +227,7 @@ COLUMNS = {
     "dqn": ["lr", "gamma", "buffer", "batch", "eps_end", "eps_decay_frac", "target", "tau", "hard_every", "double", "width", "utd"],
     "reinforce": ["lr", "gamma", "episodes_per_update", "baseline", "entropy_coef", "normalize", "width"],
     "ppo": ["lr", "gamma", "lmbda", "clip", "frames_per_batch", "epochs", "minibatch", "entropy_coef", "critic_coef", "grad_clip"],
-    "a2c": ["actor_lr", "critic_lr", "gamma", "n_steps", "lmbda", "entropy_coef", "critic_coef", "shared"],
+    "a2c": ["actor_lr", "critic_lr", "gamma", "n_steps", "lmbda", "entropy_coef", "critic_coef", "shared", "normalize_adv"],
 }
 
 

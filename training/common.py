@@ -43,6 +43,10 @@ def make_env(split: str = "train", seed: int = 0) -> TransformedEnv:
     return env
 
 
+def obs_dim() -> int:
+    return FetalScanNavEnv().observation_space.shape[0]
+
+
 def mlp(in_dim: int, out_dim: int, width: int, depth: int = 2) -> nn.Sequential:
     layers, d = [], in_dim
     for _ in range(depth):
@@ -193,7 +197,7 @@ def load_policy(path: Path):
     """Load a saved model.pt and return (greedy act fn, network, checkpoint)."""
     ckpt = torch.load(path, map_location="cpu", weights_only=False)
     cfg = ckpt["config"]
-    net = mlp(16, 9, cfg["width"])
+    net = mlp(cfg.get("obs_dim", 16), 9, cfg["width"])
     net.load_state_dict(ckpt["policy_state"])
     net.eval()
     return greedy_act_fn(net), net, ckpt

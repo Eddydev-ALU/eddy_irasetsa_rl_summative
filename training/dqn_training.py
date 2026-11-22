@@ -15,7 +15,7 @@ from torchrl.data import LazyTensorStorage, ReplayBuffer
 from torchrl.modules import EGreedyModule, QValueActor
 from torchrl.objectives import DQNLoss, HardUpdate, SoftUpdate
 
-from training.common import (RunLogger, evaluate, finish_run, greedy_act_fn, make_env, mlp,
+from training.common import (RunLogger, evaluate, finish_run, greedy_act_fn, make_env, mlp, obs_dim,
                              print_progress, seed_everything, select_best)
 
 TOTAL_FRAMES = 300_000
@@ -52,7 +52,8 @@ def train(run_id: int, overrides: dict | None = None, total_frames: int = TOTAL_
 
     env = make_env("train", cfg["seed"])
     spec = env.action_spec
-    net = mlp(16, 9, cfg["width"])
+    cfg["obs_dim"] = obs_dim()
+    net = mlp(cfg["obs_dim"], 9, cfg["width"])
     qnet = QValueActor(net, in_keys=["observation"], spec=spec)
     egreedy = EGreedyModule(spec, annealing_num_steps=int(cfg["eps_decay_frac"] * total_frames),
                             eps_init=cfg["eps_start"], eps_end=cfg["eps_end"])
