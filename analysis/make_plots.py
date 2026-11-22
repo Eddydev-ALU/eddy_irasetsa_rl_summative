@@ -222,6 +222,32 @@ def fig_sweeps():
         save(fig, f"sweep_{algo}.png")
 
 
+def fig_seeds():
+    p = ROOT / "logs" / "seeds" / "seed_check.json"
+    if not p.exists():
+        return
+    d = json.loads(p.read_text())
+    fig, ax = plt.subplots(figsize=(8, 3.6))
+    for i, algo in enumerate(ALGOS):
+        if algo not in d:
+            continue
+        rows = d[algo]["per_seed"]
+        tr = [r["train"]["mean_return"] for r in rows]
+        te = [r["test"]["mean_return"] for r in rows]
+        ax.scatter([i - 0.12] * len(tr), tr, s=40, color=COLOR[algo], edgecolor="white", linewidth=1.5, zorder=3,
+                   label="train split" if i == 0 else None)
+        ax.scatter([i + 0.12] * len(te), te, s=40, marker="D", color=COLOR[algo], alpha=0.55, edgecolor="white",
+                   linewidth=1.5, zorder=3, label="unseen test split" if i == 0 else None)
+        ax.text(i, max(tr + te) + 3, f"{d[algo]['runs_that_learned']}/{len(rows)} learned", ha="center", fontsize=8, color=INK)
+    ax.axhline(0, color=INK2, linewidth=0.8)
+    ax.set_xticks(range(len(ALGOS)), [f"{LABEL[a]}\n({d[a]['config_from']})" if a in d else LABEL[a] for a in ALGOS])
+    ax.set_ylabel("eval return (100 ep)")
+    ax.set_title("Seed robustness: best config of each method retrained with 3 new seeds")
+    ax.grid(axis="x", visible=False)
+    ax.legend(loc="center right", fontsize=8)
+    save(fig, "seed_robustness.png")
+
+
 # -------------------------------------------------------------------- tables
 COLUMNS = {
     "dqn": ["lr", "gamma", "buffer", "batch", "eps_end", "eps_decay_frac", "target", "tau", "hard_every", "double", "width", "utd"],
@@ -259,6 +285,18 @@ def tables():
         lines.append(f"| {LABEL[algo]} | run_{s['run']:02d} | {t['mean_return']:.2f} ± {t['std_return']:.2f} | {t['success_rate'] * 100:.0f} "
                      f"| {t['mean_planes']:.2f} | {u['mean_return']:.2f} ± {u['std_return']:.2f} | {u['success_rate'] * 100:.0f} "
                      f"| {u['mean_planes']:.2f} | {t['mean_steps']:.1f} | {t['mean_capture_quality']:.2f} |")
+    p = ROOT / "logs" / "seeds" / "seed_check.json"
+    if p.exists():
+        d = json.loads(p.read_text())
+        lines.append("\n## Seed robustness (best config, 3 fresh seeds)\n")
+        lines.append("| algorithm | config | seeds learned | train return | train success % | test return | test success % |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for algo in ALGOS:
+            if algo in d:
+                v = d[algo]
+                lines.append(f"| {LABEL[algo]} | {v['config_from']} | {v['runs_that_learned']}/{len(v['seeds'])} "
+                             f"| {v['train_return_mean']:.2f} ± {v['train_return_std']:.2f} | {v['train_success_mean'] * 100:.0f} "
+                             f"| {v['test_return_mean']:.2f} ± {v['test_return_std']:.2f} | {v['test_success_mean'] * 100:.0f} |")
     (OUT / "results_tables.md").write_text("\n".join(lines) + "\n")
     print("wrote", OUT / "results_tables.md")
 
@@ -272,6 +310,7 @@ def main():
     fig_convergence()
     fig_generalization()
     fig_sweeps()
+    fig_seeds()
     tables()
 
 
