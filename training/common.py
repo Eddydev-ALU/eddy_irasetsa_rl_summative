@@ -97,17 +97,21 @@ def evaluate(act, split="train", episodes=EVAL_SEEDS, seed_base=100_000):
     }
 
 
-def episodes_to_converge(returns: np.ndarray, window: int = 20, tol: float = 0.05) -> int:
-    """First episode after which the 20-episode moving average stays within
-    `tol` (5 %) of the curve's range below its final plateau (mean of last 10 %)."""
+def episodes_to_converge(returns: np.ndarray, window: int = 20, tol: float = 0.05, keep: float = 0.95) -> int:
+    """Episodes to converge: the first episode after which the 20-episode moving average stays
+    within `tol` (5 %) of the curve's range below its final plateau (mean of the last 10 %) for at
+    least `keep` (95 %) of the remaining episodes. The 95 % allowance stops a few isolated bad
+    episodes late in training from pushing the convergence point to the very end."""
     if len(returns) < window * 2:
         return len(returns)
     ma = pd.Series(returns).rolling(window).mean().to_numpy()[window - 1:]
     plateau = ma[-max(1, len(ma) // 10):].mean()
     band = tol * (ma.max() - ma.min() + 1e-8)
-    ok = ma >= plateau - band
-    bad = np.where(~ok)[0]
-    first = 0 if len(bad) == 0 else bad[-1] + 1
+    ok = (ma >= plateau - band).astype(float)
+    # fraction of points from i to the end that are inside the band
+    frac = np.cumsum(ok[::-1])[::-1] / np.arange(len(ok), 0, -1)
+    idx = np.where((frac >= keep) & (ok > 0))[0]
+    first = int(idx[0]) if len(idx) else len(ma) - 1
     return int(min(first + window - 1, len(returns)))
 
 

@@ -88,6 +88,7 @@ def fig_cumulative_rewards():
 
 def fig_overlay():
     fig, ax = plt.subplots(figsize=(8, 4.2))
+    ends = []
     for algo in ALGOS:
         r = best_run(algo)
         ev = load(algo, r, "eval")
@@ -95,8 +96,14 @@ def fig_overlay():
             continue
         y = smooth(ev["mean_return"], 3)
         ax.plot(ev["frames"] / 1e3, y, color=COLOR[algo], label=f"{LABEL[algo]} (run_{r:02d})")
-        ax.annotate(LABEL[algo], (ev["frames"].iloc[-1] / 1e3, y[-1]), xytext=(4, 0), textcoords="offset points",
-                    va="center", fontsize=8, color=INK)
+        ends.append([y[-1], ev["frames"].iloc[-1] / 1e3, LABEL[algo]])
+    # direct labels at line ends, nudged apart so they never overlap
+    ends.sort()
+    span = ax.get_ylim()[1] - ax.get_ylim()[0]
+    for i in range(1, len(ends)):
+        ends[i][0] = max(ends[i][0], ends[i - 1][0] + 0.045 * span)
+    for y, x, name in ends:
+        ax.annotate(name, (x, y), xytext=(6, 0), textcoords="offset points", va="center", fontsize=8, color=INK)
     ax.set_xlabel("environment frames (thousands)")
     ax.set_ylabel("greedy eval return (3-point mean)")
     ax.set_title("Evaluation return vs. frames, best run per method (same 20 seeds)")
@@ -158,12 +165,15 @@ def fig_convergence():
         ma = smooth(ep["return"], 20)
         ax.plot(ep["episode"], ma, color=COLOR[algo])
         ax.axvline(c, color=INK, linewidth=1, linestyle="--")
-        ax.set_title(f"{LABEL[algo]}: converged at ep {c}", fontsize=9)
+        learned = json.loads((mdir(algo) / "best" / "summary.json").read_text())["eval_train"]["success_rate"] > 0.5
+        ax.set_title(f"{LABEL[algo]}: converged at ep {c}" if learned else f"{LABEL[algo]}: plateau at ep {c} (task not learned)", fontsize=9)
         ax.set_xlabel("episode", fontsize=8)
         ax.set_ylabel("20-ep mean return", fontsize=8)
-    axb.bar([LABEL[a] for a in ALGOS], vals, color=[COLOR[a] for a in ALGOS], width=0.6)
+    learned = [json.loads((mdir(a) / "best" / "summary.json").read_text())["eval_train"]["success_rate"] > 0.5 for a in ALGOS]
+    axb.bar([LABEL[a] for a in ALGOS], vals, color=[COLOR[a] for a in ALGOS], width=0.6,
+            hatch=["" if l else "///" for l in learned], edgecolor="white")
     for x, v in enumerate(vals):
-        axb.text(x, v, f"{v}", ha="center", va="bottom", fontsize=8, color=INK)
+        axb.text(x, v, f"{v}" if learned[x] else f"{v}\n(not learned)", ha="center", va="bottom", fontsize=8, color=INK)
     axb.set_ylabel("episodes to converge")
     axb.set_title("Episodes to converge (best run)")
     axb.grid(axis="x", visible=False)
@@ -198,7 +208,11 @@ def fig_generalization():
         ax.set_xticks(x, [LABEL[a] for a in ALGOS])
         ax.grid(axis="x", visible=False)
         ax.axhline(0, color=INK2, linewidth=0.8)
-    a1.legend(loc="upper right", fontsize=8)
+    a1.set_ylim(0, 122)
+    a1.legend(loc="upper center", fontsize=8, ncol=2)
+    for x, (t, u) in enumerate(zip(tr, te)):
+        if t == 0 and u == 0:
+            a1.text(x, 2, "0 %\n(no plane\ncaptured)", ha="center", va="bottom", fontsize=7.5, color=INK2)
     save(fig, "generalization.png")
 
 
@@ -234,17 +248,21 @@ def fig_seeds():
         rows = d[algo]["per_seed"]
         tr = [r["train"]["mean_return"] for r in rows]
         te = [r["test"]["mean_return"] for r in rows]
-        ax.scatter([i - 0.12] * len(tr), tr, s=40, color=COLOR[algo], edgecolor="white", linewidth=1.5, zorder=3,
-                   label="train split" if i == 0 else None)
-        ax.scatter([i + 0.12] * len(te), te, s=40, marker="D", color=COLOR[algo], alpha=0.55, edgecolor="white",
-                   linewidth=1.5, zorder=3, label="unseen test split" if i == 0 else None)
-        ax.text(i, max(tr + te) + 3, f"{d[algo]['runs_that_learned']}/{len(rows)} learned", ha="center", fontsize=8, color=INK)
+        jit = np.linspace(-0.05, 0.05, len(rows))             # separate seeds with near-equal scores
+        ax.scatter(i - 0.14 + jit, tr, s=44, color=COLOR[algo], edgecolor="white", linewidth=1.5, zorder=3)
+        ax.scatter(i + 0.14 + jit, te, s=44, marker="D", color=COLOR[algo], alpha=0.55, edgecolor="white",
+                   linewidth=1.5, zorder=3)
+        ax.text(i, max(tr + te) + 4, f"{d[algo]['runs_that_learned']}/{len(rows)} learned", ha="center", fontsize=8, color=INK)
     ax.axhline(0, color=INK2, linewidth=0.8)
     ax.set_xticks(range(len(ALGOS)), [f"{LABEL[a]}\n({d[a]['config_from']})" if a in d else LABEL[a] for a in ALGOS])
     ax.set_ylabel("eval return (100 ep)")
-    ax.set_title("Seed robustness: best config of each method retrained with 3 new seeds")
+    ax.set_title("Seed robustness: best config of each method retrained with 3 new seeds", pad=12)
     ax.grid(axis="x", visible=False)
-    ax.legend(loc="center right", fontsize=8)
+    ax.set_ylim(top=ax.get_ylim()[1] + 8)
+    from matplotlib.lines import Line2D
+    ax.legend(handles=[Line2D([], [], marker="o", ls="", color=INK2, label="train split (circle)"),
+                       Line2D([], [], marker="D", ls="", color=INK2, alpha=0.55, label="unseen test split (diamond)")],
+              loc="center right", fontsize=8)
     save(fig, "seed_robustness.png")
 
 
@@ -255,6 +273,13 @@ COLUMNS = {
     "ppo": ["lr", "gamma", "lmbda", "clip", "frames_per_batch", "epochs", "minibatch", "entropy_coef", "critic_coef", "grad_clip"],
     "a2c": ["actor_lr", "critic_lr", "gamma", "n_steps", "lmbda", "entropy_coef", "critic_coef", "shared", "normalize_adv"],
 }
+
+
+def conv(algo, run):
+    from training.common import episodes_to_converge
+
+    ep = load(algo, run, "episodes")
+    return episodes_to_converge(ep["return"].to_numpy()) if not ep.empty else ""
 
 
 def tables():
@@ -272,7 +297,7 @@ def tables():
             et, es = r["eval_train"], r["eval_test"]
             lines.append(f"| {r['run']:02d} | " + " | ".join(str(c.get(k, "")) for k in cols)
                          + f" | {et['mean_return']:.2f} ± {et['std_return']:.2f} | {et['success_rate'] * 100:.0f} "
-                         f"| {es['success_rate'] * 100:.0f} | {r['episodes_to_converge']} |")
+                         f"| {es['success_rate'] * 100:.0f} | {conv(algo, r['run'])} |")
     lines.append("\n## Best run per algorithm (100 episodes per split)\n")
     lines.append("| algorithm | run | train return | train success % | train planes | test return | test success % | test planes | mean steps (train) | capture quality (train) |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|")
