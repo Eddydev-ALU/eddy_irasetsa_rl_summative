@@ -24,7 +24,7 @@ COLOR = {"dqn": "#2a78d6", "reinforce": "#eb6834", "ppo": "#1baf7a", "a2c": "#ed
 INK, INK2, GRID = "#0b0b0b", "#52514e", "#e6e5e1"
 
 plt.rcParams.update({
-    "figure.dpi": 200, "savefig.dpi": 200, "font.size": 9, "axes.titlesize": 10, "axes.titleweight": "semibold",
+    "figure.dpi": 200, "savefig.dpi": 200, "font.size": 9, "axes.titlesize": 10, "axes.titleweight": "bold",
     "axes.labelcolor": INK2, "axes.edgecolor": GRID, "axes.linewidth": 0.8, "xtick.color": INK2, "ytick.color": INK2,
     "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6,
     "axes.axisbelow": True, "legend.frameon": False, "lines.linewidth": 2, "figure.facecolor": "white",
@@ -82,7 +82,7 @@ def fig_cumulative_rewards():
         ax.set_xlabel("episode")
         ax.set_ylabel("episode return")
     axes[0, 0].legend(loc="lower right", fontsize=8)
-    fig.suptitle("Cumulative reward per episode, best run of each method", fontweight="semibold")
+    fig.suptitle("Cumulative reward per episode, best run of each method", fontweight="bold")
     save(fig, "cumulative_rewards.png")
 
 

@@ -116,7 +116,16 @@ class VizBridge:
         self._history: list[str] = []   # current episode, replayed to late joiners
         self._lock = threading.Lock()
         handler = partial(type("H", (_Handler,), {"bridge": self}), directory=str(WEB_DIR))
-        self.server = _Server(("127.0.0.1", port), handler)
+        # fall back to the next free port if this one is taken (e.g. a viewer is already open)
+        for p in range(port, port + 20):
+            try:
+                self.server = _Server(("127.0.0.1", p), handler)
+                break
+            except OSError:
+                continue
+        else:
+            raise OSError(f"no free port in {port}-{port + 19}")
+        self.port = p
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
     @property
