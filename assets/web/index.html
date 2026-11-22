@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FetalScanNav · Probe guidance</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="favicon.svg">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="console-header">
+    <div class="hdr-group">
+      <span class="brand">FetalScanNav</span>
+      <span class="sep"></span>
+      <span class="dim">Probe guidance</span>
+    </div>
+    <div class="hdr-group mono">
+      <span>PT-0427</span><span class="dim">GA est. —</span>
+      <span class="sep"></span>
+      <span>OB 2/3</span>
+      <span>Depth 14 cm</span>
+      <span class="dim">MI 0.9 · TIs 0.3</span>
+      <span class="sep"></span>
+      <span id="hdr-fps">8 fps</span>
+    </div>
+    <div class="hdr-group mono">
+      <span id="hdr-split" class="dim">split —</span>
+      <span class="sep"></span>
+      <span id="hdr-episode">EP —</span>
+      <span id="hdr-step">STEP —</span>
+      <span class="sep"></span>
+      <span id="hdr-agent">Agent —</span>
+      <span class="sep"></span>
+      <span id="hdr-status" class="status"><i></i><b>Connecting</b></span>
+    </div>
+  </header>
+
+  <main class="console-main">
+    <section class="stage" id="stage">
+      <canvas id="scene"></canvas>
+
+      <div class="overlay overlay-tl">
+        <div class="label">Probe pose</div>
+        <dl class="readout mono">
+          <dt>u</dt><dd id="ro-u">—</dd>
+          <dt>v</dt><dd id="ro-v">—</dd>
+          <dt>θ</dt><dd id="ro-th">—</dd>
+          <dt>φ</dt><dd id="ro-ph">—</dd>
+        </dl>
+      </div>
+
+      <div class="overlay overlay-tr" id="gt-panel">
+        <div class="label">Ground truth <span class="key">G</span></div>
+        <div class="gt-body mono" id="gt-body">hidden from agent</div>
+      </div>
+
+      <div class="overlay overlay-bl mono keys">
+        <span><span class="key">Space</span> pause</span>
+        <span><span class="key">→</span> step</span>
+        <span><span class="key">G</span> ground truth</span>
+        <span><span class="key">1</span><span class="key">2</span><span class="key">3</span> views</span>
+        <span><span class="key">R</span> restart</span>
+      </div>
+
+      <div class="overlay overlay-br mono" id="view-name">Overview</div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-block bmode-block">
+        <div class="block-head">
+          <span class="label">B-mode · simulated</span>
+          <span class="mono dim" id="bm-meta">C5-2 · 3.5 MHz · Gain 54</span>
+        </div>
+        <div class="bmode-wrap" id="bmode-wrap">
+          <canvas id="bmode"></canvas>
+          <svg id="bmode-scale" class="bmode-scale"></svg>
+          <div class="bmode-flash" id="bmode-flash"></div>
+          <div class="bmode-toast mono" id="bmode-toast"></div>
+        </div>
+      </div>
+
+      <div class="panel-block readouts">
+        <div class="col">
+          <div class="label">Plane classifier</div>
+          <div class="bars" id="bars"></div>
+          <div class="label mt">Image quality</div>
+          <div class="qmeter">
+            <div class="qtrack"><div class="qfill" id="qfill"></div><div class="qthr"></div></div>
+            <div class="qrow mono"><span id="qval">0.00</span><span class="dim">capture ≥ 0.70</span></div>
+          </div>
+        </div>
+        <div class="col guidance">
+          <div class="label">Guidance</div>
+          <div class="glyph" id="glyph"></div>
+          <div class="guidance-text" id="guidance-text">Waiting for agent</div>
+          <div class="mono dim small" id="action-id">—</div>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <div class="block-head"><span class="label">Capture tray</span><span class="mono dim" id="tray-count">0 / 3</span></div>
+        <div class="tray" id="tray"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="console-footer">
+    <div class="timeline">
+      <div class="block-head"><span class="label">Reward per step</span><span class="mono dim" id="tl-legend">captures marked</span></div>
+      <canvas id="timeline"></canvas>
+    </div>
+    <div class="episodes" id="episodes"></div>
+    <div class="return">
+      <div class="label">Return</div>
+      <div class="big mono" id="ret">+0.00</div>
+      <div class="mono dim small" id="last-r">r —</div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
