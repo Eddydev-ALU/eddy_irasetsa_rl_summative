@@ -110,6 +110,19 @@ def _entropy(actor, td):
     return actor.get_dist(td).entropy().mean()
 
 
+def _total_loss(out):
+    """With entropy_coef = 0 TorchRL omits the entropy term entirely."""
+    loss = out["loss_objective"] + out["loss_critic"]
+    return loss + out["loss_entropy"] if "loss_entropy" in out.keys() else loss
+
+
+def _entropy_of(out, actor, td):
+    if "entropy" in out.keys():
+        return out["entropy"].detach()
+    with torch.no_grad():
+        return _entropy(actor, td)
+
+
 def _setup(algo, run_id, overrides, total_frames, seed):
     base, sweep = SWEEPS[algo]
     cfg = {**base, **sweep.get(run_id, {}), **(overrides or {})}
@@ -215,12 +228,12 @@ def train_ppo(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
             for _ in range(cfg["frames_per_batch"] // cfg["minibatch"]):
                 sub = rb.sample()
                 out = loss_fn(sub)
-                loss = out["loss_objective"] + out["loss_critic"] + out["loss_entropy"]
+                loss = _total_loss(out)
                 optim.zero_grad()
                 loss.backward()
                 gn = clip_grads(policy_net.parameters(), value_net.parameters(), cfg["grad_clip"])
                 optim.step()
-                stats.append([out["loss_objective"].item(), out["loss_critic"].item(), out["entropy"].item(),
+                stats.append([out["loss_objective"].item(), out["loss_critic"].item(), _entropy_of(out, actor, sub).item(),
                               out["kl_approx"].item(), out["clip_fraction"].item(), float(gn)])
         m = torch.tensor(stats).mean(0).tolist()
         logger.log_update(frames, loss_objective=m[0], loss_critic=m[1], entropy=m[2], kl=m[3],
@@ -258,12 +271,13 @@ def train_a2c(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
                 adv = batch["advantage"]
                 batch["advantage"] = (adv - adv.mean()) / (adv.std() + 1e-8)
         out = loss_fn(batch)
-        loss = out["loss_objective"] + out["loss_critic"] + out["loss_entropy"]
+        loss = _total_loss(out)
+        ent = _entropy_of(out, actor, batch)
         optim.zero_grad()
         loss.backward()
         gn = clip_grads(policy_net.parameters(), critic_only, cfg["grad_clip"])
         optim.step()
-        acc.append([out["loss_objective"].item(), out["loss_critic"].item(), out["entropy"].item(), float(gn)])
+        acc.append([out["loss_objective"].item(), out["loss_critic"].item(), ent.item(), float(gn)])
         if len(acc) * cfg["n_steps"] >= 2048:   # log on the same cadence as PPO
             m = torch.tensor(acc).mean(0).tolist()
             logger.log_update(frames, loss_objective=m[0], loss_critic=m[1], entropy=m[2], grad_norm=m[3])
@@ -272,7 +286,7 @@ def train_a2c(run_id, overrides=None, total_frames=TOTAL_FRAMES, seed=None):
             logger.log_eval(frames, evaluate(greedy_act_fn(policy_net)))
             next_eval += total_frames // 30
         if frames >= next_print:
-            print_progress("a2c", run_id, frames, total_frames, logger, f"| H {out['entropy'].item():.2f}")
+            print_progress("a2c", run_id, frames, total_frames, logger, f"| H {ent.item():.2f}")
             next_print += total_frames // 10
     collector.shutdown()
     return _report("a2c", run_id, cfg, policy_net, logger, {"value_state": value_net.state_dict()})
