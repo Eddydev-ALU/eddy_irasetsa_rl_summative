@@ -4,7 +4,11 @@
 
 All four algorithms (DQN, REINFORCE, PPO and A2C) are implemented with **TorchRL** and trained on the same custom Gymnasium environment, with the same 300k-frame budget per run.
 
-![3D console](assets/screenshots/console.png)
+![3D console: trained PPO agent mid-scan on the unseen transverse lie](assets/screenshots/console.png)
+
+| Ground truth (G) | Full patient (3) | Probe close-up (2) |
+|---|---|---|
+| ![](assets/screenshots/console_ground_truth.png) | ![](assets/screenshots/console_full_patient.png) | ![](assets/screenshots/console_closeup.png) |
 
 ---
 

@@ -87,7 +87,7 @@ export class UI {
     const q = st.quality;
     const qf = $("qfill");
     qf.style.width = `${(q * 100).toFixed(1)}%`;
-    qf.classList.toggle("ok", q >= 0.7);
+    qf.classList.toggle("ok", q >= 0.65);
     $("qval").textContent = q.toFixed(2);
     const p = st.probe;
     $("ro-u").textContent = p.u.toFixed(3);

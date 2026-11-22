@@ -1,44 +1,44 @@
 {
   "random/train": {
-    "mean_return": -77.64008036895174,
-    "std_return": 15.509696721025323,
+    "mean_return": -33.609204083581005,
+    "std_return": 4.9314625352168004,
     "success_rate": 0.0,
-    "mean_steps": 199.12,
-    "mean_capture_quality": 0.015542694767453473
+    "mean_steps": 199.28,
+    "mean_capture_quality": 0.10073974162206065
   },
   "random/test": {
-    "mean_return": -77.12931933250297,
-    "std_return": 14.55094287268752,
+    "mean_return": -33.1972779253544,
+    "std_return": 4.598104531565941,
     "success_rate": 0.0,
-    "mean_steps": 198.46,
-    "mean_capture_quality": 0.016288970022096415
+    "mean_steps": 199.38,
+    "mean_capture_quality": 0.09881178095622051
   },
   "hillclimb/train": {
-    "mean_return": -6.97892468289286,
-    "std_return": 3.89823895860117,
+    "mean_return": -4.18931139743003,
+    "std_return": 0.34880282854060096,
     "success_rate": 0.0,
     "mean_steps": 200.0,
-    "mean_capture_quality": 0.3461220204237155
+    "mean_capture_quality": 0.7923733672381544
   },
   "hillclimb/test": {
-    "mean_return": -7.440635739804011,
-    "std_return": 3.786070606711983,
+    "mean_return": -4.083951166941979,
+    "std_return": 1.272055377352146,
     "success_rate": 0.0,
     "mean_steps": 200.0,
-    "mean_capture_quality": 0.2945366379337463
+    "mean_capture_quality": 0.7763415465278711
   },
   "oracle/train": {
-    "mean_return": 48.55656506526825,
-    "std_return": 0.9073826254817766,
+    "mean_return": 49.28889459331444,
+    "std_return": 0.5662646321826549,
     "success_rate": 1.0,
-    "mean_steps": 50.38,
-    "mean_capture_quality": 0.9223819268489121
+    "mean_steps": 43.23,
+    "mean_capture_quality": 0.9710085599719023
   },
   "oracle/test": {
-    "mean_return": 48.56465756085456,
-    "std_return": 0.899601710859116,
+    "mean_return": 49.492688043649395,
+    "std_return": 0.5403483021341188,
     "success_rate": 1.0,
-    "mean_steps": 48.79,
-    "mean_capture_quality": 0.9176028672077139
+    "mean_steps": 43.31,
+    "mean_capture_quality": 0.9717702816031855
   }
 }
