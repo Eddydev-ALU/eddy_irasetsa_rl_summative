@@ -16,7 +16,8 @@ Action space: Discrete(9)
 Observation space: Box(float32, (16,))
     idx   name                    source (real world)               range     update
     0-1   u, v                    IMU + camera / EM tracking        [0, 1]    every step
-    2-3   sin(th), cos(th)        IMU gyroscope                     [-1, 1]   every step
+    2-3   sin(2th), cos(2th)      IMU gyroscope (plane orientation,  [-1, 1]   every step
+                                  180-degree symmetric)
     4     phi / phi_max           IMU accelerometer                 [-1, 1]   every step
     5     q (image quality)       CNN on live B-mode frame          [0, 1]    every step
     6     dq (quality change)     derived in app                    [-1, 1]   every step
@@ -76,7 +77,7 @@ GUIDANCE_TEXT = (
     "Hold still - freeze and save image",
 )
 OBS_NAMES = (
-    "u", "v", "sin_theta", "cos_theta", "tilt", "quality", "d_quality",
+    "u", "v", "sin_2theta", "cos_2theta", "tilt", "quality", "d_quality",
     "p_HC", "p_AC", "p_FL", "p_none", "cap_HC", "cap_AC", "cap_FL",
     "t_left", "motion",
 )
@@ -96,10 +97,22 @@ class EnvConfig:
     region_radius: float = 0.5         # scannable disc in (u, v)
     start_radius: float = 0.10
     # image simulation
-    sigma_pos: float = 0.06
-    sigma_rot: float = np.deg2rad(22.0)
-    sigma_tilt: float = np.deg2rad(10.0)
+    sigma_pos: float = 0.07
+    sigma_rot: float = np.deg2rad(25.0)
+    sigma_tilt: float = np.deg2rad(12.0)
+    target_tilt_range: float = np.deg2rad(8.0)
     sigma_vis: float = 0.18            # how far away the anatomy is still recognisable
+    offset_scale: float = 0.12         # detector offset of 1.0 = anatomy 0.12 away in-plane
+    offset_noise: float = 0.08
+    obs_offset: bool = True
+    obs_last_action: bool = False
+    obs_privileged: bool = False       # debugging only: true relative pose of the nearest open target
+    obs_estimate: bool = False         # CNN plane-localisation estimate (noisy, gated by visibility)
+    est_min_vis: float = 0.15
+    est_pos_noise: float = 0.02
+    est_pos_noise_dist: float = 0.15
+    est_rot_noise: float = np.deg2rad(10.0)
+    est_tilt_noise: float = np.deg2rad(4.0)
     speckle_noise: float = 0.015
     edge_noise: float = 0.05           # extra noise at the abdomen edge (shadowing)
     classifier_temp: float = 6.0
@@ -142,8 +155,17 @@ class FetalScanNavEnv(gym.Env):
         self.split = split
         self.render_mode = render_mode
         self.action_space = spaces.Discrete(9)
-        low = np.array([0, 0, -1, -1, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        high = np.ones(16, dtype=np.float32)
+        low = [0, 0, -1, -1, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        if self.cfg.obs_offset:
+            low += [-1, -1]
+        if self.cfg.obs_last_action:
+            low += [0] * 9
+        if self.cfg.obs_privileged:
+            low += [-1] * 5
+        if self.cfg.obs_estimate:
+            low += [-1, -1, -1, -1, -1, 0]
+        low = np.array(low, dtype=np.float32)
+        high = np.ones_like(low)
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
     # ------------------------------------------------------------------ fetus
@@ -163,7 +185,7 @@ class FetalScanNavEnv(gym.Env):
         self.fetal_axis = base + rng.normal(0, np.deg2rad(12))   # direction pointing to fetal head
         self.fetal_centre = np.array([0.5, 0.5]) + offset
         self.femur_side = rng.choice([-1.0, 1.0])
-        self.target_tilt = rng.uniform(-np.deg2rad(12), np.deg2rad(12), size=3)
+        self.target_tilt = rng.uniform(-self.cfg.target_tilt_range, self.cfg.target_tilt_range, size=3)
         self.rot_jitter = rng.normal(0, np.deg2rad(8), size=3)
         self.femur_angle = rng.uniform(-np.deg2rad(30), np.deg2rad(30))
         self.targets = self._compute_targets(np.ones(3, bool))
@@ -214,17 +236,63 @@ class FetalScanNavEnv(gym.Env):
         logits = np.append(cfg.classifier_temp * s, 0.35 * cfg.classifier_temp)
         logits = logits + rng.normal(0, cfg.classifier_noise, size=4)
         p = np.exp(logits - logits.max())
-        return q, p / p.sum()
+        p = p / p.sum()
+        # detector: in-plane offset of the most likely anatomy, rotated into patient (u, v) axes
+        k = int(np.argmax(p))
+        off = np.zeros(2)
+        if k < 3:
+            t = self.targets[k]
+            ax = np.array([np.cos(self.theta), np.sin(self.theta)])
+            lat = np.clip(((t[0] - self.u) * ax[0] + (t[1] - self.v) * ax[1]) / cfg.offset_scale
+                          + rng.normal(0, cfg.offset_noise), -1, 1)
+            off = lat * ax
+        self.offset = off
+        self.estimate = self._plane_estimate(p, vis)
+        return q, p
+
+    def _plane_estimate(self, p, vis):
+        """Noisy relative pose of the most likely *uncaptured* plane, as a plane-localisation
+        CNN would regress it from the live frame. Zero (valid=0) if that anatomy is not recognisable."""
+        cfg, rng = self.cfg, self.np_random
+        open_ = np.where(~self.captured)[0]
+        if len(open_) == 0:
+            return np.zeros(6)
+        k = open_[np.argmax(p[open_])]
+        if vis[k] < cfg.est_min_vis:
+            return np.zeros(6)
+        t = self.targets[k]
+        dist = np.hypot(t[0] - self.u, t[1] - self.v)
+        pn = cfg.est_pos_noise + cfg.est_pos_noise_dist * dist
+        du = t[0] - self.u + rng.normal(0, pn)
+        dv = t[1] - self.v + rng.normal(0, pn)
+        dr = 2 * (t[2] - self.theta + rng.normal(0, cfg.est_rot_noise))
+        dt = (t[3] - self.phi + rng.normal(0, cfg.est_tilt_noise)) / cfg.tilt_max
+        return np.clip([du * 3, dv * 3, np.sin(dr), np.cos(dr), dt, 1.0], -1, 1)
 
     def _obs(self):
         return np.array(
             [
-                self.u, self.v, np.sin(self.theta), np.cos(self.theta), self.phi / self.cfg.tilt_max,
+                self.u, self.v, np.sin(2 * self.theta), np.cos(2 * self.theta), self.phi / self.cfg.tilt_max,
                 self.q, np.clip(self.dq, -1, 1), *self.probs, *self.captured.astype(float),
                 1.0 - self.steps / self.cfg.max_steps, float(self.motion),
+                *(self.offset if self.cfg.obs_offset else ()),
+                *(np.eye(9)[self.last_action] if self.cfg.obs_last_action and self.last_action is not None
+                  else np.zeros(9) if self.cfg.obs_last_action else ()),
+                *(self._privileged() if self.cfg.obs_privileged else ()),
+                *(self.estimate if self.cfg.obs_estimate else ()),
             ],
             dtype=np.float32,
         )
+
+    def _privileged(self):
+        open_ = np.where(~self.captured)[0]
+        if len(open_) == 0:
+            return np.zeros(5)
+        t = self.targets
+        k = open_[np.argmin(np.hypot(t[open_, 0] - self.u, t[open_, 1] - self.v))]
+        dr = 2 * (t[k, 2] - self.theta)
+        return np.clip([(t[k, 0] - self.u) * 3, (t[k, 1] - self.v) * 3, np.sin(dr), np.cos(dr),
+                        (t[k, 3] - self.phi) / self.cfg.tilt_max], -1, 1)
 
     def _info(self):
         return {
@@ -253,6 +321,7 @@ class FetalScanNavEnv(gym.Env):
         self.steps = 0
         self.motion = False
         self.event = None
+        self.last_action = None
         a, vis = self._alignment()
         self.q, self.probs = self._image_signals(a, vis)
         self.dq = 0.0
@@ -263,6 +332,7 @@ class FetalScanNavEnv(gym.Env):
         cfg = self.cfg
         rng = self.np_random
         action = int(action)
+        self.last_action = action
         self.steps += 1
         reward = -cfg.time_cost
         terminated = False
@@ -340,6 +410,8 @@ class FetalScanNavEnv(gym.Env):
             },
             "targets": {PLANES[k]: [float(x) for x in self.targets[k]] for k in range(3)},
             "alignment": {PLANES[k]: float(a[k]) for k in range(3)},
+            "visibility": {PLANES[k]: float(vis[k]) for k in range(3)},
+            "offset": [float(x) for x in self.offset],
             "quality": float(self.q),
             "probs": {n: float(p) for n, p in zip((*PLANES, "none"), self.probs)},
             "captured": {PLANES[k]: bool(self.captured[k]) for k in range(3)},

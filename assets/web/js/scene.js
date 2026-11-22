@@ -184,6 +184,23 @@ function buildProbe() {
   return { probe, beam, mark };
 }
 
+function makeLabel(text) {
+  const c = document.createElement("canvas");
+  c.width = 128; c.height = 64;
+  const g = c.getContext("2d");
+  g.font = "500 40px 'Plex Mono', monospace";
+  g.fillStyle = "#e8a33d";
+  g.textBaseline = "middle";
+  g.fillText(text, 8, 34);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, toneMapped: false }));
+  sp.scale.set(0.32, 0.16, 1);
+  sp.renderOrder = 12;
+  sp.userData.canvas = c;
+  return sp;
+}
+
 function capsuleBetween(p0, p1, r, mat) {
   const len = p0.distanceTo(p1);
   const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(len - 2 * r, 0.001), 10, 24), mat);
@@ -222,7 +239,7 @@ export class Scene3D {
     this.controls.maxPolarAngle = Math.PI * 0.47;
 
     this.views = {
-      1: { name: "Overview", pos: new THREE.Vector3(6.4, 6.0, 5.6), follow: 0.2 },
+      1: { name: "Overview", pos: new THREE.Vector3(4.3, 4.6, 4.1), follow: 0.15 },
       2: { name: "Probe close-up", pos: null, follow: 1.0 },
       3: { name: "Top-down", pos: new THREE.Vector3(0.01, 9.0, 0.6), follow: 0.15 },
     };
@@ -340,11 +357,13 @@ export class Scene3D {
     this.markerObjs = {};
     for (const k of ["HC", "AC", "FL"]) {
       const g = new THREE.Group();
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.07, 0.085, 48), new THREE.MeshBasicMaterial({ color: "#e8a33d", transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }));
-      const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.012), new THREE.MeshBasicMaterial({ color: "#e8a33d", transparent: true, opacity: 0.7, depthWrite: false, toneMapped: false }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.118, 48), new THREE.MeshBasicMaterial({ color: "#e8a33d", transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }));
+      const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.014), new THREE.MeshBasicMaterial({ color: "#e8a33d", transparent: true, opacity: 0.7, depthWrite: false, toneMapped: false }));
       ring.renderOrder = bar.renderOrder = 7;
-      g.add(ring, bar);
-      g.userData = { ring, bar };
+      const label = makeLabel(k);
+      label.position.set(0.16, 0.16, 0.02);
+      g.add(ring, bar, label);
+      g.userData = { ring, bar, label };
       this.markers.add(g);
       this.markerObjs[k] = g;
     }
@@ -472,6 +491,7 @@ export class Scene3D {
       const col = st.captured[k] ? "#6faf8f" : "#e8a33d";
       g.userData.ring.material.color.set(col);
       g.userData.bar.material.color.set(col);
+      g.userData.label.material.color.set(st.captured[k] ? "#9fd1b6" : "#ffffff");
       this.dropLines[k].material.color.set(col);
     }
   }
