@@ -6,7 +6,11 @@ from environment.custom_env import CAPTURE, FetalScanNavEnv
 
 
 def test_check_env():
-    check_env(FetalScanNavEnv())
+    import gymnasium as gym
+
+    import environment  # noqa: F401  (registers FetalScanNav-v0)
+
+    check_env(gym.make("FetalScanNav-v0").unwrapped)
 
 
 def test_estimate_gated_by_visibility():
