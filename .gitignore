@@ -1,6 +1,3 @@
-# Private brief (not part of submission)
-CLAUDE.md
-
 # Python
 __pycache__/
 *.py[cod]
@@ -14,4 +11,3 @@ __pycache__/
 
 # Private working notes (not part of submission)
 report_notes.md
-video_script.md
