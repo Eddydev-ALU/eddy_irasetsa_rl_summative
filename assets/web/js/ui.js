@@ -159,11 +159,13 @@ export class UI {
 
   setEpisodes(list, current) {
     const el = $("episodes");
-    el.innerHTML = `<div class="label" style="margin-bottom:6px">Episodes</div>` + list.map((e) => {
+    el.innerHTML = `<div class="label" style="margin-bottom:6px">Episodes${list.length > 3 ? ` <span class="dim">· ${list.filter((e) => e.done && e.success).length}/${list.filter((e) => e.done).length} solved</span>` : ""}</div><div class="ep-list" id="ep-list">` + list.map((e) => {
       const cls = e.done ? (e.success ? "ok" : "bad") : "";
       return `<div class="ep mono ${e.episode === current && !e.done ? "current" : ""}"><span>EP ${e.episode}</span><span class="dot ${cls}"></span>` +
         `<span>${e.done ? `${e.planes}/3` : "…"}</span><span>${e.done ? `${e.steps} st` : ""}</span><span style="text-align:right">${e.done ? (e.ret >= 0 ? "+" : "−") + Math.abs(e.ret).toFixed(1) : ""}</span></div>`;
-    }).join("");
+    }).join("") + "</div>";
+    const box = $("ep-list");
+    box.scrollTop = box.scrollHeight;  // keep the newest episode in view; scroll up for earlier ones
   }
 
   drawTimeline() {
@@ -184,7 +186,11 @@ export class UI {
     g.beginPath(); g.moveTo(pad, mid + 0.5); g.lineTo(w - pad, mid + 0.5); g.stroke();
     // step ticks every 50
     g.fillStyle = C.text3; g.font = "10px 'Plex Mono', monospace";
-    for (let s = 0; s <= N; s += 50) g.fillText(String(s), x(s) + 2, h - 2);
+    for (let s = 0; s <= N; s += 50) {
+      g.textAlign = s === N ? "right" : "left";
+      g.fillText(String(s), s === N ? x(s) - 2 : x(s) + 2, h - 2);
+    }
+    g.textAlign = "left";
     // reward bars (clipped, sign-coloured)
     const bw = Math.max(1, (w - 2 * pad) / N - 1);
     this.rewards.forEach((r, i) => {
